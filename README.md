@@ -18,6 +18,20 @@ Application does NOT import from CSV:
 Application imports WRONGLY from CSV
  - records with float or int columns, which contain non-numeric data. They might be set to 0 in the database table
 
+INSTALLATION
+
+After copying The Project files to the catalog you want, do the following.
+
+    - make sure that php and composer are available by these names from console on your OS (environment variable contains correct path to them)
+    - open console
+    - change current directory of console to where you have just located the Project
+    - execute the following commands
+
+        composer install
+        php bin/console doctrine:migrations:migrate
+
+Use and enjoy!
+
 USAGE
 
  Open console in your OS, change current directory to the directory of this Project and type:

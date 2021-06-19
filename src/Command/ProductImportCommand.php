@@ -39,7 +39,7 @@ class ProductImportCommand extends Command
                 't',
                 InputOption::VALUE_OPTIONAL,
                 'Reads data from CSV-file, but does not store in database table',
-                false
+                true
             );
     }
 
@@ -56,7 +56,7 @@ class ProductImportCommand extends Command
             $filePath = $input->getOption('filepath');
             $startTime = microtime(true);
             $info = $this->productImportService->importFromCSV($filePath);
-            if ($input->getOption('test') === false) {
+            if ($input->getOption('test') === true) {
                 $this->productImportService->storeToDatabase($info['filtered_rows']);
             }
             $endTime = microtime(true);

@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Exception;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 class ProductImportCommand extends Command
 {
@@ -37,9 +38,8 @@ class ProductImportCommand extends Command
             ->addOption(
                 'test',
                 't',
-                InputOption::VALUE_OPTIONAL,
-                'Reads data from CSV-file, but does not store in database table',
-                true
+                null,
+                'Reads data from CSV-file, but does not store in database table'
             );
     }
 
@@ -51,37 +51,55 @@ class ProductImportCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln('Import from CSV-file has been started');
+        $io = new SymfonyStyle($input, $output);
         try {
             $filePath = $input->getOption('filepath');
+            if (empty($filePath)) {
+                $filePath = $io->ask('Path to CSV-file', null, function ($path) {
+                    if (empty($path)) {
+                        throw new Exception('Path to CSV file is required and must be valid', 11);
+                    }
+
+                    return (string) $path;
+                });
+            }
+            $io->title('Import from CSV-file...');
             $startTime = microtime(true);
             $info = $this->productImportService->importFromCSV($filePath);
-            if ($input->getOption('test') === true) {
-                $this->productImportService->storeToDatabase($info['filtered_rows']);
-            }
             $endTime = microtime(true);
-            $execTime = $endTime - $startTime;
-            $output->writeln('Import has been finished! Executed for '.$execTime.' sec.');
-
-            $output->writeln('Total rows quantity in CSV file: '.$info['total_rows_qty']);
-            $output->writeln(' Of which');
-            $output->writeln('    imported successfully: '.$info['rows_successfully_imported']);
-            $output->writeln('    skipped: '.$info['rows_skipped']);
-
-            $output->writeln('Skipped rows:');
-            $strSkippedRows = "ProductCode | ProductName | ProductDescription | Stock | Cost | Discontinued\n";
-            $strSkippedRows .= "----------------------------------------------------------------------------\n";
-            foreach ($info['skipped_rows_content'] as $rowSkipped) {
-                foreach ($rowSkipped as $j => $columnSkipped) {
-                    $strSkippedRows .= $columnSkipped;
-                    $strSkippedRows .= ($j < count($rowSkipped) - 1) ? '       | ' : '';
+            $csvImportExecTime = $endTime - $startTime;
+            $dbStoreTime = 0;
+            if (((int) $input->getOption('test')) === 0) {
+                $isTestMode = $io->ask('Add imported data to database?', 'yes');
+                if (in_array(mb_strtolower($isTestMode), ['y', 'yes'])) {
+                    $startTime = microtime(true);
+                    $this->productImportService->storeToDatabase($info['filtered_rows']);
+                    $endTime = microtime(true);
+                    $dbStoreTime = $endTime - $startTime;
                 }
-                $strSkippedRows .= "\n";
             }
-            $output->writeln($strSkippedRows);
 
+            $io->text('CSV-file metadata:');
+            $csvImportExecTime += $dbStoreTime;
+            $io->table(
+                ['CSV-file metadatum', 'value'],
+                [
+                    ['Import execution time (sec.):', $csvImportExecTime,],
+                    ['Total rows quantity:', $info['total_rows_qty']],
+                    ['Imported successfully:', $info['rows_successfully_imported']],
+                    ['Skipped:', $info['rows_skipped'],],
+                ]
+            );
+
+            if (!empty($info['skipped_rows_content'])) {
+                $io->text('Skipped rows:');
+                $io->table(
+                    ['ProductCode', 'ProductName', 'ProductDescription', 'Stock', 'Cost', 'Discontinued'],
+                    $info['skipped_rows_content']
+                );
+            }
         } catch (Exception $exc) {
-            $output->writeln('ERROR#'.$exc->getCode().': '.$exc->getMessage());
+            $io->error('ERROR#'.$exc->getCode().': '.$exc->getMessage());
             return Command::FAILURE;
         }
 

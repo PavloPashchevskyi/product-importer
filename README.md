@@ -23,6 +23,8 @@ INSTALLATION
 After copying The Project files to the catalog you want, do the following.
 
     - make sure that php and composer are available by these names from console on your OS (environment variable contains correct path to them)
+    - create ".env.local" file (if it has not been created yet) and put there the contents of the ".env" file
+    - replace "DATABASE_URL" option value to the URL of your database
     - open console
     - change current directory of console to where you have just located the Project
     - execute the following commands

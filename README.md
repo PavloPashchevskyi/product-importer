@@ -46,6 +46,16 @@ If you want to run this command in a test mode (import from CSV without insertio
 
     php bin/console app:product:import --filepath="/path/to/your/csv/file.csv" --test
 
+TESTING
+
+ To test this application via PHPUnit execute the following commands.
+    
+    php bin/console doctrine:migrations:migrate --env=test
+ 
+ To run PHPUnit tests execute the following command.
+    
+    php bin/phpunit tests/
+
  
 
         
